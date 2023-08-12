@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model TitleConfiguration {
+  title     String   @id
+  locked    Boolean
+  ttl       Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("title_configurations")
+}
+
+model TitleRequest {
+  id            Int      @id @default(autoincrement())
+  discordUserId BigInt   @map("discord_user_id")
+  kingdom       String   @map("kingdom_id")
+  x             Int
+  y             Int
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("title_requests")
+}
+
+model Governor {
+  id                  String               @id
+  nickname            String
+  power               String
+  kp                  String
+  tier1kp             String
+  tier2kp             String
+  tier3kp             String
+  tier4kp             String
+  tier5kp             String
+  dead                String
+  resourceAssistance  String               @map("resource_assistance")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  governorConnections GovernorConnection[]
+  governorDkp         GovernorDKP?
+
+  @@map("governors")
+}
+
+model GovernorConnection {
+  discordUserId String   @map("discord_user_id")
+  governor      Governor @relation(fields: [governorID], references: [id])
+  governorID    String   @map("governor_id")
+  governorType  String   @map("governor_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@id([discordUserId, governorType])
+  @@map("governor_connections")
+}
+
+model GovernorDKP {
+  id                Int      @id @default(autoincrement())
+  powerDifference   String   @map("power_difference")
+  tier4kpDifference String   @map("tier4kp_difference")
+  tier5kpDifference String   @map("tier5kp_difference")
+  deadDifference    String   @map("dead_difference")
+  governor          Governor @relation(fields: [governorID], references: [id])
+  governorID        String   @unique @map("governor_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("governor_dkps")
+}
