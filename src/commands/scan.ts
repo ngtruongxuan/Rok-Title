@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
-import { scanGovernorStats } from "../scan-governor-stats.js";
+import { scanStat } from "../scan-stat.js";
 import type { CommandExecutionContext } from "../types.js";
 
 export const scanCommand = {
@@ -43,7 +43,7 @@ export const scanCommand = {
       `Scanning top **${top}** governor profiles. This might take a while`
     );
 
-    await scanGovernorStats(device, top, prisma, newKvK, resetPower, resetKp);
+    await scanStat(device, top, prisma, newKvK, resetPower, resetKp);
 
     return interaction.channel?.send(
       "Finished scanning. A new scan can be started by using the `/scan` command "

@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder } from "discord.js";
 import writeXlsxFile from "write-excel-file/node";
 import type { CommandExecutionContext } from "../types.js";
-import { calculateDkp } from "../util/calculate-dkp.js";
+import { calculateKpi } from "../util/calculate-kpi.js";
 
 function* chunks<T>(arr: T[], n: number): Generator<T[], void> {
   for (let i = 0; i < arr.length; i += n) {
@@ -17,15 +17,15 @@ export const exportCommand = {
   execute: async ({ interaction, prisma }: CommandExecutionContext) => {
     await interaction.deferReply();
 
-    const governorsDkps = await prisma.governorDKP.findMany({
+    const governorKPI = await prisma.governorKPI.findMany({
       include: {
         governor: true,
       },
     });
 
-    const dkps = governorsDkps
-      .map(calculateDkp)
-      .map(({ powerDifference, percentageTowardsGoal, ...dkp }) => dkp);
+    const kpis = governorKPI
+      .map(calculateKpi)
+      // .map(({ powerDif, percentageTowardsGoal, ...kpi }) => kpi);
 
     const HEADER_ROW = [
       {
@@ -33,7 +33,7 @@ export const exportCommand = {
         fontWeight: "bold",
       },
       {
-        value: "Nickname",
+        value: "Governor Name",
         fontWeight: "bold",
       },
       {
@@ -41,37 +41,57 @@ export const exportCommand = {
         fontWeight: "bold",
       },
       {
-        value: "Tier 4 kp difference",
+        value: "Power Difference",
         fontWeight: "bold",
       },
       {
-        value: "Tier 5 kp difference",
+        value: "T1 Kill Dif",
         fontWeight: "bold",
       },
       {
-        value: "Dead difference",
+        value: "T2 Kill Dif",
         fontWeight: "bold",
       },
       {
-        value: "Current DKP",
+        value: "T3 Kill Dif",
         fontWeight: "bold",
       },
       {
-        value: "DKP needed",
+        value: "T4 Kill Dif",
         fontWeight: "bold",
       },
       {
-        value: "DKP remaining",
+        value: "T5 Kill Dif",
         fontWeight: "bold",
       },
       {
-        value: "Dead requirement",
+        value: "Dead Difference",
+        fontWeight: "bold",
+      },
+      {
+        value: "Current KPI",
+        fontWeight: "bold",
+      },
+      {
+        value: "KPI needed",
+        fontWeight: "bold",
+      },
+      {
+        value: "KPI remaining",
+        fontWeight: "bold",
+      },
+      {
+        value: "Percentage Towards Goal",
+        fontWeight: "bold",
+      },
+      {
+        value: "Dead Requirement",
         fontWeight: "bold",
       },
     ];
 
-    const DATA_ROWS = dkps.flatMap((dkp) =>
-      Object.values(dkp).map((value) => ({
+    const DATA_ROWS = kpis.flatMap((kpi) =>
+      Object.values(kpi).map((value) => ({
         type: typeof value === "number" ? Number : String,
         value,
       })),
@@ -87,7 +107,7 @@ export const exportCommand = {
     return interaction.followUp({
       files: [
         new AttachmentBuilder(buffer, {
-          name: "kvk_dkp.xlsx",
+          name: "kvk_kpi.xlsx",
           description: "KvK DKP export",
         }),
       ],

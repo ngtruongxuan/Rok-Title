@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { PrismaClient } from "@prisma/client";
 import {Client as AdbClient, Device} from "adb-ts";
+import dotenv from "dotenv";
 import {
   Client as DiscordClient,
   GatewayIntentBits,
@@ -11,12 +12,13 @@ import {
   ChannelType,
   codeBlock,
 } from "discord.js";
-import { pino } from "pino";
+import {Logger, pino} from "pino";
 import * as commands from "./commands/commands.module.js";
 import { config } from "./config.js";
-import {scanGovernorStats} from "./scan-governor-stats.js";
-import {CommandExecutionContext} from "./types.js";
-import {checkAppRunning} from "./util/reboot-rok.js";
+import {scanStat} from "./scan-stat.js";
+import {CommandExecutionContext, Kingdom, Title} from "./types.js";
+import {checkAppRunning, closeRok} from "./util/reboot-rok.js";
+
 
 const execAsync = promisify(exec);
 
@@ -66,10 +68,26 @@ const prisma = new PrismaClient({
 });
 
 await prisma.$connect();
+/*var ls = await device.shell('pm list packages');
+ls=ls.replace(/package:/g,"");
+ls=ls.split(/[\r\n]+/);
+if(ls.includes("com.rok.gp.vn"))
+  console.log(1)
+console.log(ls);*/
 
-await scanGovernorStats(device, 200, prisma, true, true, true);
-console.log("Done");
-/*
+// await scanStat(device, 300, prisma, false, false, false);
+// console.log("Done");
+
+/*import { addTitle } from "./add-title.js";
+const AddTitleOptions = {
+  device: device,
+  title: Title.DUKE,
+  logger: logger,
+  kingdom: Kingdom.HOME,
+  x: 544,
+  y: 605
+}
+await addTitle(AddTitleOptions);*/
 
 const discord = new DiscordClient({
   intents: [GatewayIntentBits.Guilds],
@@ -114,6 +132,9 @@ discord.on(Events.InteractionCreate, async (interaction) => {
 
   try {
     await command.execute({ interaction, device, prisma, logger });
+    /*const message = await interaction.fetchReply();
+    console.log(message);*/
+    // await closeRok(device);
   } catch (error) {
     logger.error(error);
 
@@ -127,4 +148,3 @@ discord.on(Events.InteractionCreate, async (interaction) => {
 });
 
 await discord.login();
-*/

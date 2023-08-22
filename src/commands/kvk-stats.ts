@@ -1,6 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { GovernorType, type CommandExecutionContext } from "../types.js";
-import { calculateDkp } from "../util/calculate-dkp.js";
+import { calculateKpi } from "../util/calculate-kpi.js";
 
 export const kvkStatsCommand = {
   data: new SlashCommandBuilder()
@@ -25,45 +25,45 @@ export const kvkStatsCommand = {
     )
     .toJSON(),
   execute: async ({ interaction, prisma }: CommandExecutionContext) => {
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
 
     const governorType =
       interaction.options.getString("type") ?? GovernorType.MAIN;
 
-    const id = interaction.options.getString("id");
+    const governorID = interaction.options.getString("id");
 
-    const governorDkps = await prisma.governorDKP.findMany({
+    const governorKpis = await prisma.governorKPI.findMany({
       include: {
         governor: {
           include: {
-            governorConnections: true,
+            governorLink: true,
           },
         },
       },
     });
 
-    const governorDkp = governorDkps.find((governorDkp) =>
-      id
-        ? governorDkp.governor.id === id
-        : governorDkp.governor.governorConnections.some(
-            (governorConnection) =>
-              governorConnection.discordUserId === interaction.user.id &&
-              governorConnection.governorType === governorType,
+    const governorKPI = governorKpis.find((governorKPI) =>
+      governorID
+        ? governorKPI.governor.governor_id === governorID
+        : governorKPI.governor.governorLink.some(
+            (governorLink) =>
+                governorLink.discord_user_id === interaction.user.id &&
+                governorLink.governor_type === governorType,
           ),
     );
 
-    if (!governorDkp) {
+    if (!governorKPI) {
       return interaction.followUp(
         "No dkp stats found. Either provide the id of a governor to view it's stats or use the `/link` command to link your account.",
       );
     }
 
-    const dkpSorted = governorDkps
-      .map(calculateDkp)
-      .sort((a, b) => b.dkp - a.dkp);
+    const dkpSorted = governorKpis
+      .map(calculateKpi)
+      .sort((a, b) => b.kpi - a.kpi);
 
     const dkp = dkpSorted.find(
-      (dkp) => dkp.governorID === governorDkp.governorID,
+      (dkp) => dkp.governorID === governorKPI.governor_id,
     );
 
     if (!dkp) {
@@ -72,7 +72,7 @@ export const kvkStatsCommand = {
 
     const embed = new EmbedBuilder()
       .setColor("#d3b9da")
-      .setTitle(`KvK stats for ${dkp.name}`)
+      .setTitle(`KvK stats for ${dkp.governorName}`)
       .addFields([
         {
           name: "Governor ID",
@@ -94,38 +94,38 @@ export const kvkStatsCommand = {
           inline: true,
         },
         {
-          name: "Power difference",
-          value: dkp.powerDifference,
+          name: "Power Dif",
+          value: dkp.powerDif,
           inline: true,
         },
         {
-          name: "Tier 4 kp gained",
-          value: dkp.tier4kpDifference,
+          name: "T4 Killed",
+          value: dkp.t4KillDif,
           inline: true,
         },
         {
-          name: "Tier 5 kp gained",
-          value: dkp.tier5kpDifference,
+          name: "T5 Killed",
+          value: dkp.t5KillDif,
           inline: true,
         },
         {
           name: "Dead gained",
-          value: dkp.deadDifference,
+          value: dkp.deadDif,
           inline: true,
         },
         {
-          name: "DKP",
-          value: dkp.dkp.toString(),
+          name: "KPI",
+          value: dkp.kpi.toString(),
           inline: true,
         },
         {
-          name: "DKP goal",
-          value: dkp.dkpNeeded.toString(),
+          name: "KPI Goal",
+          value: dkp.kpiNeeded.toString(),
           inline: true,
         },
         {
           name: "Dead requirement",
-          value: `${dkp.deadRequirement}`,
+          value: dkp.deadRequirement,
           inline: true,
         },
         {
@@ -137,9 +137,8 @@ export const kvkStatsCommand = {
         },
       ])
       .setFooter({
-        text: `Last update: ${governorDkp.createdAt.toLocaleString("en-US")}`,
+        text: `Last update: ${governorKPI.updated_at}`,
       });
-
-    return interaction.followUp({ embeds: [embed] });
+    return interaction.followUp({ embeds: [embed] , ephemeral: true});
   },
 };

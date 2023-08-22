@@ -10,70 +10,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model TitleConfiguration {
-  title     String   @id
-  locked    Boolean
-  ttl       Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+model Governor {
+  id                  Int            @id @default(autoincrement())
+  kingdom             String         @default("")
+  governor_id         String         @unique
+  governor_name       String
+  alliance_name       String
+  power               BigInt         @default(0)
+  kill_point          BigInt         @default(0)
+  t1_kill             BigInt         @default(0)
+  t2_kill             BigInt         @default(0)
+  t3_kill             BigInt         @default(0)
+  t4_kill             BigInt         @default(0)
+  t5_kill             BigInt         @default(0)
+  dead                BigInt         @default(0)
+  resource_assistance BigInt         @default(0)
+  created_at          String
+  updated_at          String
+  governorKPI         GovernorKPI?
+  governorLink        GovernorLink[]
 
-  @@map("title_configurations")
+  @@map("governor")
+}
+
+model GovernorKPI {
+  id          Int      @id @default(autoincrement())
+  governor    Governor @relation(fields: [governor_id], references: [governor_id])
+  governor_id String   @unique
+  power_dif   BigInt   @default(0)
+  t1_kill_dif BigInt   @default(0)
+  t2_kill_dif BigInt   @default(0)
+  t3_kill_dif BigInt   @default(0)
+  t4_kill_dif BigInt   @default(0)
+  t5_kill_dif BigInt   @default(0)
+  dead_dif    BigInt   @default(0)
+  created_at  String
+  updated_at  String
+
+  @@map("governor_kpi")
+}
+
+model GovernorLink {
+  id              Int      @id @default(autoincrement())
+  discord_user_id String   @unique
+  governor        Governor @relation(fields: [governor_id], references: [governor_id])
+  governor_id     String   @unique
+  governor_type   String
+  created_at      String
+  updated_at      String
+
+  @@map("governor_link")
+}
+
+model TitleConf {
+  id         Int     @id @default(autoincrement())
+  title      String  @unique
+  locked     Boolean
+  ttl        BigInt
+  created_at String
+  updated_at String
+
+  @@map("title_conf")
 }
 
 model TitleRequest {
-  id            Int      @id @default(autoincrement())
-  discordUserId BigInt   @map("discord_user_id")
-  kingdom       String   @map("kingdom_id")
-  x             Int
-  y             Int
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id              Int    @id @default(autoincrement())
+  discord_user_id BigInt
+  kingdom         String
+  x               BigInt
+  y               BigInt
+  created_at      String
+  updated_at      String
 
-  @@map("title_requests")
+  @@map("title_request")
 }
 
-model Governor {
-  id                  String               @id
-  nickname            String
-  power               String
-  kp                  String
-  tier1kp             String
-  tier2kp             String
-  tier3kp             String
-  tier4kp             String
-  tier5kp             String
-  dead                String
-  resourceAssistance  String               @map("resource_assistance")
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
-  governorConnections GovernorConnection[]
-  governorDkp         GovernorDKP?
+model GovernorTracking {
+  id                  Int    @id @unique @default(autoincrement())
+  kingdom             String @default("")
+  governor_id         String
+  governor_name       String
+  alliance_name       String
+  power               BigInt @default(0)
+  kill_point          BigInt @default(0)
+  t1_kill             BigInt @default(0)
+  t2_kill             BigInt @default(0)
+  t3_kill             BigInt @default(0)
+  t4_kill             BigInt @default(0)
+  t5_kill             BigInt @default(0)
+  dead                BigInt @default(0)
+  resource_assistance BigInt @default(0)
+  date_scan           String
+  created_at          String
+  updated_at          String
 
-  @@map("governors")
-}
-
-model GovernorConnection {
-  discordUserId String   @map("discord_user_id")
-  governor      Governor @relation(fields: [governorID], references: [id])
-  governorID    String   @map("governor_id")
-  governorType  String   @map("governor_type")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@id([discordUserId, governorType])
-  @@map("governor_connections")
-}
-
-model GovernorDKP {
-  id                Int      @id @default(autoincrement())
-  powerDifference   String   @map("power_difference")
-  tier4kpDifference String   @map("tier4kp_difference")
-  tier5kpDifference String   @map("tier5kp_difference")
-  deadDifference    String   @map("dead_difference")
-  governor          Governor @relation(fields: [governorID], references: [id])
-  governorID        String   @unique @map("governor_id")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  @@map("governor_dkps")
+  @@unique([kingdom, governor_id, date_scan])
+  @@map("governor_tracking")
 }

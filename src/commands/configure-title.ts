@@ -37,22 +37,25 @@ export const configureTitleCommand = {
     const ttl = interaction.options.getInteger("ttl", true);
     const locked = interaction.options.getBoolean("locked", true);
 
-    await prisma.titleConfiguration.upsert({
+    await prisma.titleConf.upsert({
       where: {
-        title,
+        title:title,
       },
       create: {
         title,
         ttl,
         locked,
+        created_at:new Date().toISOString().replace('T', ' ').substring(0, 19),
+        updated_at:new Date().toISOString().replace('T', ' ').substring(0, 19)
       },
       update: {
         ttl,
         locked,
+        updated_at:new Date().toISOString().replace('T', ' ').substring(0, 19)
       },
     });
 
-    const titleConfigurations = await prisma.titleConfiguration.findMany();
+    const titleConfigurations = await prisma.titleConf.findMany();
 
     const titleConfigurationsWithDefaultsFields = Object.values(Title).map(
       (title) => {

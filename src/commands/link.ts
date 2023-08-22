@@ -28,17 +28,17 @@ export const linkCommand = {
   execute: async ({ interaction, prisma }: CommandExecutionContext) => {
     await interaction.deferReply();
 
-    const id = interaction.options.getString("id", true);
+    const governorID = interaction.options.getString("id", true);
 
     const governor = await prisma.governor.findUnique({
       where: {
-        id,
+        governor_id:governorID,
       },
     });
 
     if (!governor) {
       return interaction.followUp(
-        `Could not find a governor with ID: **${id}**`
+        `Could not find a governor with ID: **${governorID}**`
       );
     }
 
@@ -47,26 +47,26 @@ export const linkCommand = {
       true
     ) as GovernorType;
 
-    await prisma.governorConnection.upsert({
+    await prisma.governorLink.upsert({
       where: {
-        discordUserId_governorType: {
-          discordUserId: interaction.user.id,
-          governorType,
-        },
+        discord_user_id:interaction.user.id
       },
       create: {
-        discordUserId: interaction.user.id,
-        governorID: governor.id,
-        governorType,
+        discord_user_id: interaction.user.id,
+        governor_id: governor.governor_id,
+        governor_type:governorType,
+        created_at:new Date().toISOString().replace('T', ' ').substring(0, 19),
+        updated_at:new Date().toISOString().replace('T', ' ').substring(0, 19)
       },
       update: {
-        governorID: governor.id,
-        governorType,
+        governor_id: governor.governor_id,
+        governor_type:governorType,
+        updated_at:new Date().toISOString().replace('T', ' ').substring(0, 19)
       },
     });
 
     return interaction.followUp(
-      `Succesfully linked **${governor.nickname}** (${governorType}) to your Discord user`
+      `Succesfully linked **${governor.governor_name}** (${governorType}) to your Discord user`
     );
   },
 };

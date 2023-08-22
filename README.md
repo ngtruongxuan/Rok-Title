@@ -66,7 +66,7 @@ git clone https://github.com/daniellwdb/rok-title-keeper.git
 2. Install dependencies:
 
 ```bash
-cd rok-title-keeper
+cd rok-title
 npm install
 ```
 
@@ -90,7 +90,7 @@ _Memory allocation_ -> Medium(2 GB)
 
 **Display**
 
-_Display resolution_ -> 1600x900
+_Display resolution_ -> 1280x720
 
 _Pixel density_ -> Custom (450 DPI)
 

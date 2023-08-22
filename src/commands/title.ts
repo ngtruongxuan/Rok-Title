@@ -66,9 +66,9 @@ export const titleCommand = {
     const x = interaction.options.getInteger("x");
     const y = interaction.options.getInteger("y");
 
-    const titleConfiguration = await prisma.titleConfiguration.findUnique({
+    const titleConfiguration = await prisma.titleConf.findUnique({
       where: {
-        title,
+        title:title
       },
     });
 
@@ -88,7 +88,7 @@ export const titleCommand = {
     // TODO: refactor title request history
     const titleRequests = await prisma.titleRequest.findMany({
       where: {
-        discordUserId: BigInt(interaction.user.id),
+        discord_user_id: BigInt(interaction.user.id),
       },
     });
 
@@ -134,13 +134,15 @@ export const titleCommand = {
 
     const lastInsertedTitleRequest = await prisma.titleRequest.create({
       data: {
-        discordUserId: BigInt(interaction.user.id),
+        discord_user_id: BigInt(interaction.user.id),
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         kingdom: kingdomForTitleRequest!,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         x: x ?? latestTitleRequest!.x,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         y: y ?? latestTitleRequest!.y,
+        created_at:new Date().toISOString().replace('T', ' ').substring(0, 19),
+        updated_at:new Date().toISOString().replace('T', ' ').substring(0, 19)
       },
       select: {
         kingdom: true,

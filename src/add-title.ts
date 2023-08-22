@@ -6,13 +6,15 @@ import { type Logger } from "pino";
 import { OEM, PSM, createWorker } from "tesseract.js";
 import { config } from "./config.js";
 import { Kingdom, type Title } from "./types.js";
-import { findCutoutPosition } from "./util/find-cutout-position.js";
+import {findCutoutPosition, findPosition} from "./util/find-cutout-position.js";
 import {
+  checkAppRunning, closeRok,
   getLastVisitedKingdom,
   getPixelHexColour,
   rebootRoK,
   setLastVisitedKingdom,
 } from "./util/util.module.js";
+import sharp from "sharp";
 
 export interface AddTitleOptions {
   device: Device;
@@ -23,22 +25,28 @@ export interface AddTitleOptions {
   y: number;
 }
 
-const ELEMENT_POSITIONS = {
-  COORDINATES_SEARCH_BUTTON: "536 9",
-  KINGDOM_ID_INPUT: "567.5 179",
-  INPUT_OK_BUTTON: "1460.5 814.5",
-  X_COORDINATE_INPUT: "798.5 179",
-  Y_COORDINATE_INPUT: "991.5 179",
-  COORDINATES_OVERLAY_SEARCH_BUTTON: "1102 179",
-  CITY_LOCATIONS: ["797 460", "800 450", "803 449.5"],
-  JUSTICE_TITLE_CHECKBOX: "367 493",
-  DUKE_TITLE_CHECKBOX: "643 493",
-  ARCHITECT_TITLE_CHECKBOX: "938 493",
-  SCIENTIST_TITLE_CHECKBOX: "1226 493",
-  CONFIRM_BUTTON: "801.5 800",
-  TITLE_OVERLAY_CLOSE_BUTTON: "1395 56",
+const E_POS = {
+  COORDINATES_SEARCH_BUTTON: "437 18",
+  KINGDOM_ID_INPUT: "441 143",
+  INPUT_OK_BUTTON: "1147 636",
+  X_COORDINATE_INPUT: "628 145",
+  Y_COORDINATE_INPUT: "766 144",
+  COORDINATES_OVERLAY_SEARCH_BUTTON: "887 141",
+  CITY_LOCATIONS: ["617 396", "720 311"/*, "803 449.5"*/],
+  JUSTICE_TITLE_CHECKBOX: "290 384",
+  DUKE_TITLE_CHECKBOX: "520 384",
+  ARCHITECT_TITLE_CHECKBOX: "748 384",
+  SCIENTIST_TITLE_CHECKBOX: "978 384",
+  CONFIRM_BUTTON: "652 642",
+  TITLE_OVERLAY_CLOSE_BUTTON: "1122 45",
   ONLINE_STATUS_INDICATOR: "95 9",
-  MAP_LOCATION: "75 825",
+  MAP_LOCATION: "66 650",
+  KD_TXT: {
+    left: 290,
+    top: 7,
+    width: 35,
+    height: 20,
+  }
 } as const;
 
 const QUICK_TRAVEL_TIMEOUT = 4_000;
@@ -55,7 +63,7 @@ export const addTitle = async ({
   x,
   y,
 }: AddTitleOptions) => {
-  const onlineStatusIndicatorHexColour = await getPixelHexColour(
+  /*const onlineStatusIndicatorHexColour = await getPixelHexColour(
     await device.screenshot(),
     ...(ELEMENT_POSITIONS.ONLINE_STATUS_INDICATOR.split(" ").map(Number) as [
       number,
@@ -72,6 +80,12 @@ export const addTitle = async ({
     await device.shell(`input tap ${ELEMENT_POSITIONS.MAP_LOCATION}`);
 
     await setTimeout(MAP_ANIMATION_DURATION);
+  }*/
+
+  //Check Rok Running
+  const isRunning = await checkAppRunning(device);
+  if(!isRunning){
+    await rebootRoK(device);
   }
 
   const worker = await createWorker();
@@ -81,21 +95,48 @@ export const addTitle = async ({
 
   await worker.setParameters({
     tessedit_ocr_engine_mode: "4" as unknown as OEM,
-    tessedit_char_whitelist: "XY0123456789",
+    tessedit_char_whitelist: "0123456789C",
     tessedit_pageseg_mode: PSM.SPARSE_TEXT,
   });
+
+  const SCREENSHOT_PATH = join(process.cwd(), "temp", "screenshot.jpg");
+
+  // await writeFile(SCREENSHOT_PATH, await device.screenshot());
+  // const isHome = await findCutoutPosition(
+  //     SCREENSHOT_PATH,
+  //     join(process.cwd(),"resources","home_btn_2.png"),0.5
+  // );
+  // console.log(isHome);
+
+
+  const viewScr = await sharp(await device.screenshot())
+      .grayscale()
+      .jpeg()
+      .toBuffer();
+  await setTimeout(MAP_ANIMATION_DURATION);
+
+  //Check is view City or Not
+  const {
+    data: {text: inCity},
+  } = await worker.recognize(viewScr, {
+    rectangle: E_POS.KD_TXT,
+  });
+
+  console.log(inCity.trim());
+  if(inCity.trim()==''){
+    await device.shell(`input tap ${E_POS.MAP_LOCATION}`);
+    await setTimeout(MAP_ANIMATION_DURATION);
+  }
 
   const KINGDOM_INPUT_VALUE = config.get(
     `kingdom.${kingdom.toLowerCase() as Lowercase<Kingdom>}`,
   );
 
   // Open coordinates search overlay
-  await device.shell(
-    `input tap ${ELEMENT_POSITIONS.COORDINATES_SEARCH_BUTTON}`,
-  );
+  await device.shell(`input tap ${E_POS.COORDINATES_SEARCH_BUTTON}`);
 
   // Tap kingdom id input
-  await device.shell(`input tap ${ELEMENT_POSITIONS.KINGDOM_ID_INPUT}`);
+  await device.shell(`input tap ${E_POS.KINGDOM_ID_INPUT}`);
 
   // Remove existing input (https://stackoverflow.com/a/72186108)
   await device.shell(
@@ -106,67 +147,66 @@ export const addTitle = async ({
   await device.shell(`input text ${KINGDOM_INPUT_VALUE}`);
 
   // Tap "OK"
-  await device.shell(`input tap ${ELEMENT_POSITIONS.INPUT_OK_BUTTON}`);
+  await device.shell(`input tap ${E_POS.INPUT_OK_BUTTON}`);
 
   // Tap x-coordinate input
-  await device.shell(`input tap ${ELEMENT_POSITIONS.X_COORDINATE_INPUT}`);
+  await device.shell(`input tap ${E_POS.X_COORDINATE_INPUT}`);
 
   // Enter x-coordinate
   await device.shell(`input text ${x}`);
 
   // Tap "OK"
-  await device.shell(`input tap ${ELEMENT_POSITIONS.INPUT_OK_BUTTON}`);
+  await device.shell(`input tap ${E_POS.INPUT_OK_BUTTON}`);
 
   // Tap y-coordinate input
-  await device.shell(`input tap ${ELEMENT_POSITIONS.Y_COORDINATE_INPUT}`);
+  await device.shell(`input tap ${E_POS.Y_COORDINATE_INPUT}`);
 
   // Enter y-coordinate
   await device.shell(`input text ${y}`);
 
   // Tap "OK"
-  await device.shell(`input tap ${ELEMENT_POSITIONS.INPUT_OK_BUTTON}`);
+  await device.shell(`input tap ${E_POS.INPUT_OK_BUTTON}`);
 
   // Tap search button
-  await device.shell(
-    `input tap ${ELEMENT_POSITIONS.COORDINATES_OVERLAY_SEARCH_BUTTON}`,
-  );
+  await device.shell(`input tap ${E_POS.COORDINATES_OVERLAY_SEARCH_BUTTON}`);
+
 
   const isTravellingToNewKingdom = getLastVisitedKingdom() !== kingdom;
 
-  await setTimeout(
-    isTravellingToNewKingdom ? SLOW_TRAVEL_TIMEOUT : QUICK_TRAVEL_TIMEOUT,
-  );
+  // await setTimeout(
+  //   isTravellingToNewKingdom ? SLOW_TRAVEL_TIMEOUT : QUICK_TRAVEL_TIMEOUT,
+  // );
 
   setLastVisitedKingdom(kingdom);
 
   const getTitleButtonCoordinates = async (
     cityLocationIndex = 0,
   ): Promise<Record<"x" | "y", number>> => {
-    if (cityLocationIndex > ELEMENT_POSITIONS.CITY_LOCATIONS.length) {
+    if (cityLocationIndex > E_POS.CITY_LOCATIONS.length) {
       throw new Error("You might have entered the wrong coordinates.");
     }
 
+    console.log(cityLocationIndex)
     // Tap city
     await device.shell(
-      `input tap ${ELEMENT_POSITIONS.CITY_LOCATIONS[cityLocationIndex]}`,
+      `input tap ${E_POS.CITY_LOCATIONS[cityLocationIndex]}`,
     );
 
     await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
 
-    const SCREENSHOT_PATH = join(process.cwd(), "temp", "screenshot.jpg");
-
-    const ADD_TITLE_BUTTON_IMAGE_PATH = join(
-      process.cwd(),
-      "resources",
-      "add-title-button.jpg",
-    );
-
     await writeFile(SCREENSHOT_PATH, await device.screenshot());
 
+    const ADD_TITLE_BUTTON_IMAGE_PATH = join(
+        process.cwd(),
+        "resources",
+        // "add-title-button.jpg",
+        "add-title-button2.png",
+    );
     const addTitleButtoncoordinates = await findCutoutPosition(
       SCREENSHOT_PATH,
-      ADD_TITLE_BUTTON_IMAGE_PATH,
+      ADD_TITLE_BUTTON_IMAGE_PATH
     );
+    console.log(addTitleButtoncoordinates);
 
     if (!addTitleButtoncoordinates) {
       return getTitleButtonCoordinates(cityLocationIndex + 1);
@@ -180,15 +220,16 @@ export const addTitle = async ({
   // Tap title icon
   await device.shell(
     `input tap ${addTitleButtoncoordinates.x} ${addTitleButtoncoordinates.y}`,
+      // `input tap 738 228`,
   );
 
-  await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
+  await setTimeout(2000);
 
   const UNSELECTED_TITLE_CHECKBOX_BACKGROUND_COLOURS_HEX_START = "#00";
 
   const titleCheckboxHexColour = await getPixelHexColour(
     await device.screenshot(),
-    ...(ELEMENT_POSITIONS[
+    ...(E_POS[
       `${title.toUpperCase() as Uppercase<Title>}_TITLE_CHECKBOX`
     ]
       .split(" ")
@@ -198,20 +239,19 @@ export const addTitle = async ({
   const titleChecked = !titleCheckboxHexColour.startsWith(
     UNSELECTED_TITLE_CHECKBOX_BACKGROUND_COLOURS_HEX_START,
   );
-
   if (titleChecked) {
     // Press close button
     await device.shell(
-      `input tap ${ELEMENT_POSITIONS.TITLE_OVERLAY_CLOSE_BUTTON}`,
+      `input tap ${E_POS.TITLE_OVERLAY_CLOSE_BUTTON}`,
     );
-
     throw new Error(`You already have the ${title} title.`);
   }
 
+  await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
   // Tap selected title checkbox
   await device.shell(
     `input tap ${
-      ELEMENT_POSITIONS[
+      E_POS[
         `${title.toUpperCase() as Uppercase<Title>}_TITLE_CHECKBOX`
       ]
     }`,
@@ -220,7 +260,7 @@ export const addTitle = async ({
   await setTimeout(NEW_CLICK_IDLE_TIMEOUT);
 
   // Tap confirm button
-  await device.shell(`input tap ${ELEMENT_POSITIONS.CONFIRM_BUTTON}`);
+  await device.shell(`input tap ${E_POS.CONFIRM_BUTTON}`);
 
   await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
 

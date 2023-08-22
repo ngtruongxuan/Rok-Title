@@ -17,6 +17,7 @@
     "adb-ts": "^4.0.4",
     "clipboardy": "^3.0.0",
     "convict": "^6.2.4",
+    "dateformat": "^5.0.3",
     "discord.js": "^14.11.0",
     "pino": "^8.14.2",
     "rxjs": "^7.8.1",

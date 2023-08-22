@@ -26,6 +26,21 @@ export const findCutoutPosition = async (
     };
   }
 };
+export const findPosition = async (
+    originalImagePath: string,
+    cutoutImagePath: string,
+) => {
+  const originalImage = await cv.imreadAsync(originalImagePath);
+  const cutoutImage = await cv.imreadAsync(cutoutImagePath);
 
+  const matched = originalImage.matchTemplate(cutoutImage,5);
+
+  const { maxLoc, maxVal } = matched.minMaxLoc();
+  return {
+    x: maxLoc.x,
+    y: maxLoc.y,
+    p: maxVal
+  };
+};
 
 
