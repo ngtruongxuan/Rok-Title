@@ -19,6 +19,7 @@ import {
   titleRequestsQueue$,
 } from "../title-queue.js";
 import { Title, type Command, Kingdom } from "../types.js";
+import {closeRok} from "../util/reboot-rok.js";
 
 export const titleCommand = {
   data: new SlashCommandBuilder()
@@ -239,7 +240,8 @@ export const titleCommand = {
       ) {
         return;
       }
-
+      if(titleQueueCounts$.value[title].length<1)
+        await closeRok(device);
       throw error;
     } finally {
       await successMessage.edit({
@@ -252,6 +254,9 @@ export const titleCommand = {
           ),
         ],
       });
+      if(titleQueueCounts$.value[title].length<1)
+        await closeRok(device);
     }
+    console.log(titleQueueCounts$.value[title].length);
   },
 } satisfies Command;

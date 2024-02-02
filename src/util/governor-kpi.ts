@@ -13,40 +13,25 @@ export const updateGovernorKPI = async (
             governor: true,
         },
     });
-
+    const curDate = new Date().toISOString().slice(0, 10);
     if (existingGovernorKpi) {
         return prisma.governorKPI.update({
             where: {
                 governor_id: existingGovernorKpi.governor_id,
             },
             data: {
-                power_dif: (
-                    Number(governor.power) - Number(existingGovernorKpi.governor.power)
-                ).toString(),
-                t1_kill_dif: (
-                    Number(governor.t1_kill) -
-                    Number(existingGovernorKpi.governor.t1_kill)
-                ).toString(),
-                t2_kill_dif: (
-                    Number(governor.t2_kill) -
-                    Number(existingGovernorKpi.governor.t2_kill)
-                ).toString(),
-                t3_kill_dif: (
-                    Number(governor.t3_kill) -
-                    Number(existingGovernorKpi.governor.t3_kill)
-                ).toString(),
-                t4_kill_dif: (
-                    Number(governor.t4_kill) -
-                    Number(existingGovernorKpi.governor.t4_kill)
-                ).toString(),
-                t5_kill_dif: (
-                    Number(governor.t5_kill) -
-                    Number(existingGovernorKpi.governor.t5_kill)
-                ).toString(),
-                dead_dif: (
-                    Number(governor.dead) - Number(existingGovernorKpi.governor.dead)
-                ).toString(),
-                updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+                power_dif: Number(governor.power)- Number(existingGovernorKpi.governor.power),
+                t1_kill_dif: Number(governor.t1_kill) - Number(existingGovernorKpi.governor.t1_kill),
+                t2_kill_dif: Number(governor.t2_kill) - Number(existingGovernorKpi.governor.t2_kill),
+                t3_kill_dif: Number(governor.t3_kill) - Number(existingGovernorKpi.governor.t3_kill),
+                t4_kill_dif: Number(governor.t4_kill) - Number(existingGovernorKpi.governor.t4_kill),
+                t5_kill_dif: Number(governor.t5_kill) - Number(existingGovernorKpi.governor.t5_kill),
+                dead_dif: Number(governor.dead) -Number(existingGovernorKpi.governor.dead),
+                res_assistance_dif: Number(governor.resource_assistance) - Number(existingGovernorKpi.governor.resource_assistance),
+                gather_dif: Number(governor.resource_gathered) - Number(existingGovernorKpi.governor.resource_gathered),
+                help_dif: Number(governor.alliance_help) - Number(existingGovernorKpi.governor.alliance_help),
+                updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                date_scan: curDate
             },
         });
     }
@@ -60,6 +45,10 @@ export const updateGovernorKPI = async (
             t4_kill_dif: 0,
             t5_kill_dif: 0,
             dead_dif: 0,
+            res_assistance_dif: 0,
+            gather_dif: 0,
+            help_dif: 0,
+            date_scan: curDate,
             created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
             updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
             governor: {
@@ -80,6 +69,7 @@ export const upsertGovernorKPI = async (
     resetPower: boolean,
     resetKp: boolean
 ) => {
+    const curDate = new Date().toISOString().slice(0, 10);
     await prisma.governor.upsert({
         where: {
             governor_id: governor.governor_id,
@@ -98,6 +88,8 @@ export const upsertGovernorKPI = async (
                 t5_kill: governor.t5_kill,
                 dead: governor.dead,
                 resource_assistance: governor.resource_assistance,
+                resource_gathered: governor.resource_gathered,
+                alliance_help: governor.alliance_help,
                 updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
             }),
             governorKPI: {
@@ -111,6 +103,10 @@ export const upsertGovernorKPI = async (
                             t4_kill_dif: 0,
                             t5_kill_dif: 0,
                             dead_dif: 0,
+                            res_assistance_dif: 0,
+                            gather_dif: 0,
+                            help_dif: 0,
+                            date_scan: curDate,
                             updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
                         }),
                     },
@@ -122,6 +118,10 @@ export const upsertGovernorKPI = async (
                         t4_kill_dif: 0,
                         t5_kill_dif: 0,
                         dead_dif: 0,
+                        res_assistance_dif: 0,
+                        gather_dif: 0,
+                        help_dif: 0,
+                        date_scan: curDate,
                         created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
                         updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
                     },
@@ -139,7 +139,6 @@ export const createGovernorTracking = async (
     const isExist =  await prisma.governorTracking.findFirst({
         where:{
             governor_id: governor.governor_id,
-            kingdom:config.get('kingdom.home'),
             date_scan: curDate,
         }
     });
@@ -147,6 +146,7 @@ export const createGovernorTracking = async (
         await prisma.governorTracking.update({
             where:{id:isExist.id},
             data:{
+                kingdom:config.get('kingdom.home'),
                 governor_name: governor.governor_name,
                 alliance_name: governor.alliance_name,
                 power: governor.power,
@@ -158,6 +158,8 @@ export const createGovernorTracking = async (
                 t5_kill: governor.t5_kill,
                 dead: governor.dead,
                 resource_assistance: governor.resource_assistance,
+                resource_gathered: governor.resource_gathered,
+                alliance_help: governor.alliance_help,
                 updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
             }
         })
@@ -165,7 +167,7 @@ export const createGovernorTracking = async (
     else{
         await prisma.governorTracking.create({
             data: {
-                kingdom: config.get('kingdom.home'),
+                kingdom:config.get('kingdom.home'),
                 governor_id: governor.governor_id,
                 governor_name: governor.governor_name,
                 alliance_name: governor.alliance_name,
@@ -179,6 +181,8 @@ export const createGovernorTracking = async (
                 t5_kill: governor.t5_kill,
                 dead: governor.dead,
                 resource_assistance: governor.resource_assistance,
+                resource_gathered: governor.resource_gathered,
+                alliance_help: governor.alliance_help,
                 created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
                 updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
             },

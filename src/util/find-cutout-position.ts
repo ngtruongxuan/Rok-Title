@@ -28,19 +28,36 @@ export const findCutoutPosition = async (
 };
 export const findPosition = async (
     originalImagePath: string,
-    cutoutImagePath: string,
+    cutoutImagePath: string
 ) => {
   const originalImage = await cv.imreadAsync(originalImagePath);
   const cutoutImage = await cv.imreadAsync(cutoutImagePath);
 
-  const matched = originalImage.matchTemplate(cutoutImage,5);
+/*  const matched = originalImage.matchTemplate(cutoutImage,5);
 
   const { maxLoc, maxVal } = matched.minMaxLoc();
   return {
     x: maxLoc.x,
     y: maxLoc.y,
     p: maxVal
+  };*/
+
+  const originalImageToGray = originalImage.cvtColor(cv.COLOR_BGR2GRAY);
+  const cutoutImageToGray = cutoutImage.cvtColor(cv.COLOR_BGR2GRAY);
+
+  const matched = originalImageToGray.matchTemplate(
+      cutoutImageToGray,
+      cv.TM_CCOEFF_NORMED
+  );
+
+  const { maxLoc, maxVal } = matched.minMaxLoc();
+  // console.log([maxVal,maxLoc.x, max/Loc.y]);
+  return {
+    x: maxLoc.x,
+    y: maxLoc.y,
+    p: maxVal
   };
+
 };
 
 

@@ -4,6 +4,7 @@ import sharp from "sharp";
 import {createWorker, OEM, PSM} from "tesseract.js";
 import clipboard from "clipboardy";
 import {config} from "./config.js";
+import {isEmpty} from "rxjs";
 
 const E_POS = {
     GOVERNOR_PROFILE_CLOSE_BUTTON: "1090 80",
@@ -88,15 +89,28 @@ const E_POS = {
         top: 541,
         width: 167,
         height: 40,
+    },
+    RES_GATHERED:{
+        left: 900,
+        top: 490,
+        width: 167,
+        height: 40,
+    },
+    HELP_TIMES:{
+        left: 900,
+        top: 585,
+        width: 167,
+        height: 40,
     }
 } as const;
-const ANIMATION_DURATION = 1000;
+const ANIMATION_DURATION = 550;
 
 const worker = await createWorker();
 await worker.loadLanguage("eng");
 await worker.initialize("eng");
 export const scanProfile = async (device: Device) => {
     //Take Screenshot Governor Profile
+    await setTimeout(ANIMATION_DURATION);
     const profileSrc = await sharp(await device.screenshot())
         .grayscale()
         .jpeg()
@@ -105,7 +119,7 @@ export const scanProfile = async (device: Device) => {
 
     await worker.setParameters({
         tessedit_ocr_engine_mode: "4" as unknown as OEM,
-        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ[] ",
+        tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ;:![] ",
         tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
     });
     //Check Opening Popup GOVERNOR PROFILE
@@ -114,6 +128,7 @@ export const scanProfile = async (device: Device) => {
     } = await worker.recognize(profileSrc, {
         rectangle: E_POS.PROFILE_LABEL,
     });
+    console.log('Label '+getLabel.trim());
     if (getLabel.trim() != 'GOVERNOR PROFILE') {
         throw new Error('Please open popup GOVERNOR PROFILE');
     }
@@ -229,6 +244,19 @@ export const scanProfile = async (device: Device) => {
         rectangle: E_POS.RES_ASISTANCE_TEXT,
     });
 
+    //Get Resource Gathered
+    const {
+        data: {text: resourceGathered},
+    } = await worker.recognize(moreInfoScr, {
+        rectangle: E_POS.RES_GATHERED,
+    });
+    //Get Help Times
+    const {
+        data: {text: helpTimes},
+    } = await worker.recognize(moreInfoScr, {
+        rectangle: E_POS.HELP_TIMES,
+    });
+
     // Close More Info
     await device.shell(`input tap ${E_POS.MORE_INFO_CLOSE_BUTTON}`);
     await setTimeout(ANIMATION_DURATION);
@@ -239,13 +267,14 @@ export const scanProfile = async (device: Device) => {
 
     console.log(["---------", governorName.trim(), governorID.trim(), power.trim(), killPoints.trim(), dead.trim(), resourceAssistance.trim(), "---------"].join(' '))
     const curDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
     const governor = {
         kingdom:config.get('kingdom.home'),
         governor_id: governorID.trim(),
         governor_name: governorName.trim(),
         alliance_name: alliance.trim(),
         power: parseInt(power.trim()),
-        kill_point: parseInt(killPoints.trim()),
+        kill_point: parseInt(killPoints.trim() == ''?0:killPoints.trim()),
         t1_kill: parseInt(t1Kill.trim()),
         t2_kill: parseInt(t2Kill.trim()),
         t3_kill: parseInt(t3Kill.trim()),
@@ -253,6 +282,8 @@ export const scanProfile = async (device: Device) => {
         t5_kill: parseInt(t5Kill.trim()),
         dead:parseInt(dead.trim()),
         resource_assistance: parseInt(resourceAssistance.trim()),
+        resource_gathered: parseInt(resourceGathered.trim()),
+        alliance_help: parseInt(helpTimes.trim()),
         created_at:curDate,
         updated_at:curDate
     };

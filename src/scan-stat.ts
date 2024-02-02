@@ -112,7 +112,7 @@ const E_POS = {
   }
 } as const;
 
-const ANIMATION_DURATION = 1000;
+const ANIMATION_DURATION = 500;
 export const scanStat = async (
     device: Device,
     top: number,
@@ -238,10 +238,9 @@ export const scanStat = async (
       await createGovernorTracking(prisma, res);
     }catch (e){
       console.log(e);
-      fails++;
+
       beforeFail++;
     }
-    await setTimeout(2500);
   }
   // Close individual kill rankings
   await device.shell(

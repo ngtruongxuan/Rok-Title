@@ -50,10 +50,10 @@ const E_POS = {
 } as const;
 
 const QUICK_TRAVEL_TIMEOUT = 4_000;
-const SLOW_TRAVEL_TIMEOUT = 17_000;
+const SLOW_TRAVEL_TIMEOUT = 5000;
 const UI_ELEMENT_ANIMATION_DURATION = 750;
 const NEW_CLICK_IDLE_TIMEOUT = 100;
-const MAP_ANIMATION_DURATION = 500;
+const MAP_ANIMATION_DURATION = 1500;
 
 export const addTitle = async ({
   device,
@@ -86,8 +86,9 @@ export const addTitle = async ({
   const isRunning = await checkAppRunning(device);
   if(!isRunning){
     await rebootRoK(device);
+    await device.shell(`input tap ${E_POS.MAP_LOCATION}`);
+    await setTimeout(MAP_ANIMATION_DURATION);
   }
-
   const worker = await createWorker();
 
   await worker.loadLanguage("eng");
@@ -99,17 +100,25 @@ export const addTitle = async ({
     tessedit_pageseg_mode: PSM.SPARSE_TEXT,
   });
 
+
   const SCREENSHOT_PATH = join(process.cwd(), "temp", "screenshot.jpg");
+  await writeFile(SCREENSHOT_PATH, await device.screenshot());
 
-  // await writeFile(SCREENSHOT_PATH, await device.screenshot());
-  // const isHome = await findCutoutPosition(
-  //     SCREENSHOT_PATH,
-  //     join(process.cwd(),"resources","home_btn_2.png"),0.5
-  // );
-  // console.log(isHome);
+  const BUILD_PATH = join(process.cwd(),"resources","build_btn.png");
+  const buildBtn = await findPosition(SCREENSHOT_PATH,BUILD_PATH);
 
+  const SEARCH_PATH = join(process.cwd(),"resources","search.png");
+  const searchBtn = await findPosition(SCREENSHOT_PATH,SEARCH_PATH);
 
-  const viewScr = await sharp(await device.screenshot())
+  //Check is view City or Not
+  // console.log(buildBtn);
+  if(searchBtn.p<0.6){
+    await rebootRoK(device);
+    await device.shell(`input tap ${E_POS.MAP_LOCATION}`);
+    await setTimeout(MAP_ANIMATION_DURATION);
+  }
+
+  /*const viewScr = await sharp(await device.screenshot())
       .grayscale()
       .jpeg()
       .toBuffer();
@@ -122,11 +131,11 @@ export const addTitle = async ({
     rectangle: E_POS.KD_TXT,
   });
 
-  console.log(inCity.trim());
+  // console.log(inCity.trim());
   if(inCity.trim()==''){
     await device.shell(`input tap ${E_POS.MAP_LOCATION}`);
     await setTimeout(MAP_ANIMATION_DURATION);
-  }
+  }*/
 
   const KINGDOM_INPUT_VALUE = config.get(
     `kingdom.${kingdom.toLowerCase() as Lowercase<Kingdom>}`,
@@ -138,6 +147,7 @@ export const addTitle = async ({
   // Tap kingdom id input
   await device.shell(`input tap ${E_POS.KINGDOM_ID_INPUT}`);
 
+  await setTimeout(MAP_ANIMATION_DURATION);
   // Remove existing input (https://stackoverflow.com/a/72186108)
   await device.shell(
     "input keyevent --longpress 67 67 67 67 67 67 67 67 67 67 67 67 67 67 67 67 67 67",
@@ -151,7 +161,7 @@ export const addTitle = async ({
 
   // Tap x-coordinate input
   await device.shell(`input tap ${E_POS.X_COORDINATE_INPUT}`);
-
+  await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
   // Enter x-coordinate
   await device.shell(`input text ${x}`);
 
@@ -160,7 +170,7 @@ export const addTitle = async ({
 
   // Tap y-coordinate input
   await device.shell(`input tap ${E_POS.Y_COORDINATE_INPUT}`);
-
+  await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
   // Enter y-coordinate
   await device.shell(`input text ${y}`);
 
@@ -169,32 +179,34 @@ export const addTitle = async ({
 
   // Tap search button
   await device.shell(`input tap ${E_POS.COORDINATES_OVERLAY_SEARCH_BUTTON}`);
+  await setTimeout(8000);
 
 
-  const isTravellingToNewKingdom = getLastVisitedKingdom() !== kingdom;
+  // const isTravellingToNewKingdom = getLastVisitedKingdom() !== kingdom;
+  // if(isTravellingToNewKingdom)
+  //   await setTimeout(SLOW_TRAVEL_TIMEOUT);
 
   // await setTimeout(
   //   isTravellingToNewKingdom ? SLOW_TRAVEL_TIMEOUT : QUICK_TRAVEL_TIMEOUT,
   // );
 
-  setLastVisitedKingdom(kingdom);
+  // setLastVisitedKingdom(kingdom);
 
-  const getTitleButtonCoordinates = async (
+  /*const getTitleButtonCoordinates = async (
     cityLocationIndex = 0,
   ): Promise<Record<"x" | "y", number>> => {
     if (cityLocationIndex > E_POS.CITY_LOCATIONS.length) {
       throw new Error("You might have entered the wrong coordinates.");
     }
 
-    console.log(cityLocationIndex)
+    // console.log(cityLocationIndex)
     // Tap city
-    await device.shell(
-      `input tap ${E_POS.CITY_LOCATIONS[cityLocationIndex]}`,
-    );
-
+    await device.shell(`input tap ${E_POS.CITY_LOCATIONS[cityLocationIndex]}`);
     await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
 
+    const SCREENSHOT_PATH = join(process.cwd(), "temp", "screenshot.jpg");
     await writeFile(SCREENSHOT_PATH, await device.screenshot());
+    await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
 
     const ADD_TITLE_BUTTON_IMAGE_PATH = join(
         process.cwd(),
@@ -206,24 +218,63 @@ export const addTitle = async ({
       SCREENSHOT_PATH,
       ADD_TITLE_BUTTON_IMAGE_PATH
     );
-    console.log(addTitleButtoncoordinates);
 
     if (!addTitleButtoncoordinates) {
       return getTitleButtonCoordinates(cityLocationIndex + 1);
     }
 
     return addTitleButtoncoordinates;
-  };
+  };*/
 
-  const addTitleButtoncoordinates = await getTitleButtonCoordinates();
+  // const addTitleButtoncoordinates = await getTitleButtonCoordinates();
+
+  let xClick = 640;
+  let yClick = 330;
+  if(x<200 && y > 500 && y < 1000){
+    // xClick = 660;
+    yClick = 380;
+  }
+  if(x>400){
+    xClick = 630;
+    // yClick = 410;
+  }
+  if(x<100 && y>1000){
+    xClick = 740;
+    yClick = 361;
+  }
+  if(x>100 && y>1000){
+    xClick = 640;
+    yClick = 340;
+  }
+  if(x>410 && y>800){
+    xClick = 650;
+    yClick = 340;
+  }
+  if(x>200 && y < 1000){
+    // xClick = 670;
+    yClick = 350;
+  }
+  await device.shell(`input tap ${xClick} ${yClick}`);
+  await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
+
+  await writeFile(SCREENSHOT_PATH, await device.screenshot());
+  const TITLE_BTN = join(process.cwd(),"resources","add-title-button2.png");
+  const titleBtn = await findPosition(SCREENSHOT_PATH,TITLE_BTN);
+  console.log(new Date().toISOString().replace('T', ' ').substring(0, 19));
+  console.log([`Governor (${x} ${y}) click ${xClick} ${yClick}`,titleBtn]);
+  //Check Title Btn
+
+  if(titleBtn.p<0.6){
+    throw new Error("Could not find Title Button.");
+  }
 
   // Tap title icon
   await device.shell(
-    `input tap ${addTitleButtoncoordinates.x} ${addTitleButtoncoordinates.y}`,
+    `input tap ${titleBtn.x+5} ${titleBtn.y+5}`,
       // `input tap 738 228`,
   );
 
-  await setTimeout(2000);
+  await setTimeout(UI_ELEMENT_ANIMATION_DURATION);
 
   const UNSELECTED_TITLE_CHECKBOX_BACKGROUND_COLOURS_HEX_START = "#00";
 
