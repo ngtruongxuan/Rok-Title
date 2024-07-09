@@ -103,7 +103,7 @@ const E_POS = {
         height: 40,
     }
 } as const;
-const ANIMATION_DURATION = 550;
+const ANIMATION_DURATION = 400;
 
 const worker = await createWorker();
 await worker.loadLanguage("eng");

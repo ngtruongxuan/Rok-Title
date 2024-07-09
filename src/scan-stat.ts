@@ -112,7 +112,7 @@ const E_POS = {
   }
 } as const;
 
-const ANIMATION_DURATION = 500;
+const ANIMATION_DURATION = 400;
 export const scanStat = async (
     device: Device,
     top: number,
@@ -131,10 +131,10 @@ export const scanStat = async (
 
   let beforeFail = 0;
   //Check Rok Running
-  const isRunning = await checkAppRunning(device);
+ /* const isRunning = await checkAppRunning(device);
   if(!isRunning){
     await rebootRoK(device);
-  }
+  }*/
 
   // Take Screen
   const profileSrc = await sharp(await device.screenshot())
@@ -230,11 +230,11 @@ export const scanStat = async (
       const res = await scanProfile(device);
       beforeFail = 0;
       console.log(res);
-      if (!newKvK) {
+     /* if (!newKvK) {
         await updateGovernorKPI(prisma, res);
       } else {
         await upsertGovernorKPI(prisma, res, resetPower, resetKp);
-      }
+      }*/
       await createGovernorTracking(prisma, res);
     }catch (e){
       console.log(e);

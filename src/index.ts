@@ -21,7 +21,7 @@ import {checkAppRunning, closeRok} from "./util/reboot-rok.js";
 import { addTitle } from "./add-title.js";
 
 try{
-  const execAsync = promisify(exec);
+  /*const execAsync = promisify(exec);
 
   const blueStacksConfig = await readFile(
       join("C:\\", "ProgramData", "BlueStacks_nxt", "bluestacks.conf"),
@@ -31,7 +31,7 @@ try{
   const BLUESTACKS_ADB_PORT = blueStacksConfig
       .split("\n")
       .find(
-          (key) => key.startsWith("bst.instance") && key.includes("status.adb_port")
+          (key) => key.startsWith("bst.instance") && key. includes("status.adb_port")
       )
       ?.split("=")
       .at(1)
@@ -46,12 +46,13 @@ try{
   console.log(BLUESTACKS_ADB_PORT);
   await execAsync(
       `".\\platform\\adb\\adb.exe" connect localhost:${BLUESTACKS_ADB_PORT}`
-  );
+  );*/
 
   const adb = new AdbClient({
     bin: join(process.cwd(), "platform\\adb", "adb.exe"),
     host: "127.0.0.1",
     port: 5037,
+    // port: 5037,
   });
 
   const [device] = await adb.map((device) => device);
@@ -71,12 +72,12 @@ try{
 
   await prisma.$connect();
   // var ls = await device.shell('pm list packages');
-  /*var ls = await device.shell('pm list packages');
+  var ls = await device.shell('pm list packages');
   ls=ls.replace(/package:/g,"");
   ls=ls.split(/[\r\n]+/);
   if(ls.includes("com.rok.gp.vn"))
     console.log(1)
-  console.log(ls);*/
+  console.log(ls);
 
   await scanStat(device, 300, prisma, false, false, false);
   console.log("Done");
